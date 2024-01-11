@@ -211,6 +211,10 @@ public class NexmarkGenerator implements Iterator<NexmarkGenerator.NextEvent>, S
     return new NextEvent(wallclockTimestamp, adjustedEventTimestamp, event, watermark);
   }
 
+  public void addCount(){
+    eventsCountSoFar+=1;
+  }
+
   @Override
   public NexmarkGenerator.NextEvent next() {
     return nextEvent();

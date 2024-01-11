@@ -28,6 +28,8 @@ import org.apache.flink.runtime.state.FunctionInitializationContext;
 import org.apache.flink.runtime.state.FunctionSnapshotContext;
 import org.apache.flink.streaming.api.checkpoint.CheckpointedFunction;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
+import org.apache.flink.table.data.RowData;
+import org.apache.flink.types.RowKind;
 import org.apache.flink.util.Preconditions;
 
 import com.github.nexmark.flink.generator.NexmarkGenerator;
@@ -35,6 +37,7 @@ import com.github.nexmark.flink.generator.GeneratorConfig;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class NexmarkSourceFunction<T>
 		extends RichParallelSourceFunction<T>
@@ -57,10 +60,15 @@ public class NexmarkSourceFunction<T>
 
 	private transient ListState<Long> checkpointedState;
 
+	private Random random;
+	private final ArrayList<T> rows;
+
 	public NexmarkSourceFunction(GeneratorConfig config, EventDeserializer<T> deserializer, TypeInformation<T> resultType) {
 		this.config = config;
 		this.deserializer = deserializer;
 		this.resultType = resultType;
+		this.rows = new ArrayList<>();
+		this.random = new Random();
 	}
 
 	@Override
@@ -121,11 +129,24 @@ public class NexmarkSourceFunction<T>
 				// sleep until wall clock less than current timestamp.
 				Thread.sleep(nextEvent.wallclockTimestamp - now);
 			}
-
+			T updateRow = null;
 			T next = deserializer.deserialize(nextEvent.event);
+			if(rows.size()==5){
+				int id = random.nextInt(5);
+				generator.addCount();
+				// -U
+				updateRow = rows.get(id);
+				((RowData) updateRow).setRowKind(RowKind.UPDATE_BEFORE);
+				rows.clear();
+				((RowData) next).setRowKind(RowKind.UPDATE_AFTER);
+			}
+			rows.add(next);
 			synchronized (ctx.getCheckpointLock()) {
 				numElementsEmitted = generator.getEventsCountSoFar();
 				try {
+					if(updateRow != null){
+						ctx.collect(updateRow);
+					}
 					ctx.collect(next);
 				} catch (Exception e) {
 					e.printStackTrace();

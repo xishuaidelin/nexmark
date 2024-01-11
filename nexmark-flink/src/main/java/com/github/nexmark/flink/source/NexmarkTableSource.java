@@ -82,7 +82,7 @@ public class NexmarkTableSource implements ScanTableSource {
 
 	@Override
 	public ChangelogMode getChangelogMode() {
-		return ChangelogMode.insertOnly();
+		return ChangelogMode.all();
 	}
 
 	@SuppressWarnings("unchecked")

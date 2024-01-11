@@ -82,6 +82,7 @@ public class QueryRunner {
 			runInternal();
 			// blocking until collect enough metrics
 			String jobId = flinkRestClient.getCurrentJobId();
+
 			JobBenchmarkMetric metrics = metricReporter.reportMetric(jobId, workload.getEventsNum());
 			// cancel job
 			System.out.println("Stop job query " + queryName);
